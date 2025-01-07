@@ -22,7 +22,7 @@
       display: block;
       margin-top: 10px;
     }
-    input[type="number"], input[type="text"] {
+    input[type="number"], input[type="text"], input[type="date"], input[type="time"] {
       padding: 8px;
       margin-bottom: 10px;
       width: 100%;
@@ -55,12 +55,16 @@
 <body>
   <h1>投手統計計算器</h1>
   <div>
+    <label for="date">日期:</label>
+    <input type="date" id="date">
+    <label for="time">時間:</label>
+    <input type="time" id="time">
     <label for="name">姓名:</label>
     <input type="text" id="name" placeholder="請輸入姓名">
     <label for="position">守備位置:</label>
     <input type="text" id="position" placeholder="請輸入守備位置">
-    <label for="ip">投球局數 (IP):</label>
-    <input type="number" id="ip" placeholder="請輸入投球局數">
+    <label for="ip">投球局數 (IP，格式如 6.1):</label>
+    <input type="text" id="ip" placeholder="請輸入投球局數">
     <label for="pitches">投球數 (Pitches):</label>
     <input type="number" id="pitches" placeholder="請輸入投球數">
     <label for="h">被打安打數 (H):</label>
@@ -87,10 +91,21 @@
   <script>
     let existingData = [];
 
+    function parseIP(ip) {
+      if (!ip.includes(".")) return parseFloat(ip); // 沒有小數點，直接回傳
+      const [whole, fraction] = ip.split(".").map(Number);
+      if (fraction === 1) return whole + 1 / 3;
+      if (fraction === 2) return whole + 2 / 3;
+      return parseFloat(ip); // 預設處理
+    }
+
     function calculateStats() {
+      const date = document.getElementById('date').value || "未輸入";
+      const time = document.getElementById('time').value || "未輸入";
       const name = document.getElementById('name').value || "未輸入";
       const position = document.getElementById('position').value || "未輸入";
-      const ip = parseFloat(document.getElementById('ip').value) || 0;
+      const ipInput = document.getElementById('ip').value || "0";
+      const ip = parseIP(ipInput);
       const pitches = parseFloat(document.getElementById('pitches').value) || 0;
       const h = parseFloat(document.getElementById('h').value) || 0;
       const hr = parseFloat(document.getElementById('hr').value) || 0;
@@ -104,9 +119,11 @@
       const pPerIp = ip ? (pitches / ip).toFixed(2) : "0.00";
 
       document.getElementById('resultContent').innerHTML = `
+        日期: ${date}<br>
+        時間: ${time}<br>
         姓名: ${name}<br>
         守備位置: ${position}<br>
-        投球局數 (IP): ${ip}<br>
+        投球局數 (IP): ${ipInput}<br>
         投球數 (Pitches): ${pitches}<br>
         被打安打數 (H): ${h}<br>
         被打全壘打數 (HR): ${hr}<br>
@@ -118,7 +135,7 @@
         <strong>被打擊率 (BAA):</strong> ${baa}<br>
         <strong>平均每局用球數 (P/IP):</strong> ${pPerIp}`;
 
-      existingData.push([name, position, ip, pitches, h, hr, bb, so, er, era, kPercent, baa, pPerIp]);
+      existingData.push([date, time, name, position, ipInput, pitches, h, hr, bb, so, er, era, kPercent, baa, pPerIp]);
     }
 
     function saveImage() {
@@ -135,7 +152,7 @@
 
     function saveXlsx() {
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet([["姓名", "守備位置", "投球局數 (IP)", "投球數 (Pitches)", "被打安打數 (H)", "被打全壘打數 (HR)", "四壞球數 (BB)", "三振數 (SO)", "被責失分 (ER)", "自責分率 (ERA)", "三振率 (K%)", "被打擊率 (BAA)", "平均每局用球數 (P/IP)"]]);
+      const ws = XLSX.utils.aoa_to_sheet([["日期", "時間", "姓名", "守備位置", "投球局數 (IP)", "投球數 (Pitches)", "被打安打數 (H)", "被打全壘打數 (HR)", "四壞球數 (BB)", "三振數 (SO)", "被責失分 (ER)", "自責分率 (ERA)", "三振率 (K%)", "被打擊率 (BAA)", "平均每局用球數 (P/IP)"]]);
       existingData.forEach(row => XLSX.utils.sheet_add_aoa(ws, [row], { origin: -1 }));
       XLSX.utils.book_append_sheet(wb, ws, "投手統計");
       XLSX.writeFile(wb, "投手統計結果.xlsx");
