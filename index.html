@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投手統計計算器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f7f9fc;
+    }
+    h1, h3 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="number"], input[type="text"] {
+      padding: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result-box {
+      background-color: white;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>投手統計計算器</h1>
+  <div>
+    <label for="name">姓名:</label>
+    <input type="text" id="name" placeholder="請輸入姓名">
+    <label for="position">守備位置:</label>
+    <input type="text" id="position" placeholder="請輸入守備位置">
+    <label for="ip">投球局數 (IP):</label>
+    <input type="number" id="ip" placeholder="請輸入投球局數">
+    <label for="pitches">投球數 (Pitches):</label>
+    <input type="number" id="pitches" placeholder="請輸入投球數">
+    <label for="h">被打安打數 (H):</label>
+    <input type="number" id="h" placeholder="請輸入被打安打數">
+    <label for="hr">被打全壘打數 (HR):</label>
+    <input type="number" id="hr" placeholder="請輸入被打全壘打數">
+    <label for="bb">四壞球數 (BB):</label>
+    <input type="number" id="bb" placeholder="請輸入四壞球數">
+    <label for="so">三振數 (SO):</label>
+    <input type="number" id="so" placeholder="請輸入三振數">
+    <label for="er">被責失分 (ER):</label>
+    <input type="number" id="er" placeholder="請輸入被責失分">
+    <button onclick="calculateStats()">計算統計</button>
+    <button onclick="clearFields()">清除輸入框</button>
+    <button onclick="saveImage()">儲存為圖片</button>
+    <button onclick="saveLog()">儲存為LOG檔</button>
+    <button onclick="saveXlsx()">儲存為XLSX檔</button>
+  </div>
+  <div id="result" class="result-box">
+    <h3>計算結果:</h3>
+    <div id="resultContent">尚未計算結果</div>
+  </div>
+
+  <script>
+    let existingData = [];
+
+    function calculateStats() {
+      const name = document.getElementById('name').value || "未輸入";
+      const position = document.getElementById('position').value || "未輸入";
+      const ip = parseFloat(document.getElementById('ip').value) || 0;
+      const pitches = parseFloat(document.getElementById('pitches').value) || 0;
+      const h = parseFloat(document.getElementById('h').value) || 0;
+      const hr = parseFloat(document.getElementById('hr').value) || 0;
+      const bb = parseFloat(document.getElementById('bb').value) || 0;
+      const so = parseFloat(document.getElementById('so').value) || 0;
+      const er = parseFloat(document.getElementById('er').value) || 0;
+
+      const era = ip ? (9 * er / ip).toFixed(2) : "0.00";
+      const kPercent = ip ? ((so / ip) * 9).toFixed(2) : "0.00";
+      const baa = ip ? (h / ip).toFixed(3) : "0.000";
+      const pPerIp = ip ? (pitches / ip).toFixed(2) : "0.00";
+
+      document.getElementById('resultContent').innerHTML = `
+        姓名: ${name}<br>
+        守備位置: ${position}<br>
+        投球局數 (IP): ${ip}<br>
+        投球數 (Pitches): ${pitches}<br>
+        被打安打數 (H): ${h}<br>
+        被打全壘打數 (HR): ${hr}<br>
+        四壞球數 (BB): ${bb}<br>
+        三振數 (SO): ${so}<br>
+        被責失分 (ER): ${er}<br>
+        <strong>自責分率 (ERA):</strong> ${era}<br>
+        <strong>三振率 (K%):</strong> ${kPercent}<br>
+        <strong>被打擊率 (BAA):</strong> ${baa}<br>
+        <strong>平均每局用球數 (P/IP):</strong> ${pPerIp}`;
+
+      existingData.push([name, position, ip, pitches, h, hr, bb, so, er, era, kPercent, baa, pPerIp]);
+    }
+
+    function saveImage() {
+      html2canvas(document.getElementById('result')).then(canvas => {
+        canvas.toBlob(blob => saveAs(blob, "投手統計結果.jpg"));
+      });
+    }
+
+    function saveLog() {
+      const content = document.getElementById('resultContent').innerText;
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      saveAs(blob, "投手統計結果.txt");
+    }
+
+    function saveXlsx() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([["姓名", "守備位置", "投球局數 (IP)", "投球數 (Pitches)", "被打安打數 (H)", "被打全壘打數 (HR)", "四壞球數 (BB)", "三振數 (SO)", "被責失分 (ER)", "自責分率 (ERA)", "三振率 (K%)", "被打擊率 (BAA)", "平均每局用球數 (P/IP)"]]);
+      existingData.forEach(row => XLSX.utils.sheet_add_aoa(ws, [row], { origin: -1 }));
+      XLSX.utils.book_append_sheet(wb, ws, "投手統計");
+      XLSX.writeFile(wb, "投手統計結果.xlsx");
+    }
+
+    function clearFields() {
+      document.querySelectorAll('input').forEach(input => input.value = '');
+      document.getElementById('resultContent').innerHTML = '尚未計算結果';
+    }
+  </script>
+</body>
+</html>
